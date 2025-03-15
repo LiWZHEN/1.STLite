@@ -1,8 +1,0 @@
-CMakeFiles
-Testing
-_deps
-
-build/
-.cache/
-.idea
-cmake-build-debug
