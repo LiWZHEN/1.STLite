@@ -897,33 +897,63 @@ namespace sjtu {
           }
         }
       } else { // maintain balance after delete
-        while (ptr->parent) {
-          ptr = ptr->parent;
+        while (true) {
+          // ptr = ptr->parent;
           if (ptr->left == nullptr) {
             if (ptr->right == nullptr || ptr->right->height < 2) {
+              if (ptr->parent == nullptr) {
+                break;
+              }
+              ptr = ptr->parent;
               continue;
             }
             // RX
             node *new_root, *origin_parent = ptr->parent;
-            if (ptr->right->left == nullptr) { // RR
-              new_root = ptr->right;
-              new_root->parent = origin_parent;
-              new_root->left = ptr;
-              ptr->parent = ptr->right;
-              ptr->right = nullptr;
-              ptr->height = 1;
-            } else { // RL (ptr->right->right == nullptr)
+            if (ptr->right->right == nullptr || (ptr->right->left && ptr->right->left->height > ptr->right->right->height)) { // RL
               new_root = ptr->right->left;
-              new_root->right = ptr->right;
-              new_root->left = ptr;
-              new_root->parent = origin_parent;
+              node *origin_r = ptr->right, *origin_rll = new_root->left, *origin_rlr = new_root->right;
               ptr->parent = new_root;
-              ptr->right = nullptr;
-              new_root->right->parent = new_root;
-              new_root->right->left = nullptr;
-              new_root->height = 2;
-              ptr->height = 1;
-              new_root->right->height = 1;
+              ptr->right = origin_rll;
+              origin_r->parent = new_root;
+              origin_r->left = origin_rlr;
+              new_root->parent = origin_parent;
+              new_root->left = ptr;
+              new_root->right = origin_r;
+              if (origin_rll) {
+                origin_rll->parent = ptr;
+                ptr->height = origin_rll->height + 1;
+              } else {
+                ptr->height = 1;
+              }
+              if (origin_rlr) {
+                origin_rlr->parent = origin_r;
+                if (origin_r->right) {
+                  origin_r->height = std::max(origin_r->right->height, origin_rlr->height) + 1;
+                } else {
+                  origin_r->height = origin_rlr->height + 1;
+                }
+              } else {
+                if (origin_r->right) {
+                  origin_r->height = origin_r->right->height + 1;
+                } else {
+                  origin_r->height = 1;
+                }
+              }
+              new_root->height = std::max(ptr->height, origin_r->height) + 1;
+            } else { // RR
+              new_root = ptr->right;
+              node *origin_rl = new_root->left;
+              ptr->parent = new_root;
+              ptr->right = origin_rl;
+              new_root->parent = origin_parent;
+              new_root->left = ptr;
+              if (origin_rl) {
+                origin_rl->parent = ptr;
+                ptr->height = origin_rl->height + 1;
+              } else {
+                ptr->height = 1;
+              }
+              new_root->height = std::max(ptr->height, new_root->right->height) + 1;
             }
             if (origin_parent == nullptr) { // change root pointer
               root = new_root;
@@ -936,29 +966,59 @@ namespace sjtu {
             }
           } else if (ptr->right == nullptr) {
             if (ptr->left->height < 2) {
+              if (ptr->parent == nullptr) {
+                break;
+              }
+              ptr = ptr->parent;
               continue;
             }
             // LX
             node *new_root, *origin_parent = ptr->parent;
-            if (ptr->left->right == nullptr) { // LL
-              new_root = ptr->left;
-              new_root->parent = origin_parent;
-              new_root->right = ptr;
-              ptr->left = nullptr;
-              ptr->parent = new_root;
-              ptr->height = 1;
-            } else { // LR (ptr->left->left == nullptr)
+            if (ptr->left->left == nullptr || (ptr->left->right && ptr->left->left->height < ptr->left->right->height)  ) { // LR
               new_root = ptr->left->right;
-              new_root->left = new_root->parent;
-              new_root->right = ptr;
-              new_root->parent = origin_parent;
-              new_root->left->left = nullptr;
-              new_root->left->parent = new_root;
-              ptr->left = nullptr;
+              node *origin_l = ptr->left, *origin_lrl = new_root->left, *origin_lrr = new_root->right;
               ptr->parent = new_root;
-              new_root->height = 2;
-              new_root->left->height = 1;
-              ptr->height = 1;
+              ptr->left = origin_lrr;
+              origin_l->parent = new_root;
+              origin_l->right = origin_lrl;
+              new_root->parent = origin_parent;
+              new_root->left = origin_l;
+              new_root->right = ptr;
+              if (origin_lrl) {
+                origin_lrl->parent = origin_l;
+                if (origin_l->left) {
+                  origin_l->height = std::max(origin_l->left->height, origin_lrl->height) + 1;
+                } else {
+                  origin_l->height = origin_lrl->height + 1;
+                }
+              } else {
+                if (origin_l->left) {
+                  origin_l->height = origin_l->left->height + 1;
+                } else {
+                  origin_l->height = 1;
+                }
+              }
+              if (origin_lrr) {
+                origin_lrr->parent = ptr;
+                ptr->height = origin_lrr->height + 1;
+              } else {
+                ptr->height = 1;
+              }
+              new_root->height = std::max(origin_l->height, ptr->height) + 1;
+            } else { // LL
+              new_root = ptr->left;
+              node *origin_lr = new_root->right;
+              ptr->parent = new_root;
+              ptr->left = origin_lr;
+              new_root->parent = origin_parent;
+              new_root->right = ptr;
+              if (origin_lr) {
+                origin_lr->parent = ptr;
+                ptr->height = origin_lr->height + 1;
+              } else {
+                ptr->height = 1;
+              }
+              new_root->height = std::max(ptr->height, new_root->left->height) + 1;
             }
             if (origin_parent == nullptr) { // change root pointer
               root = new_root;
@@ -972,15 +1032,7 @@ namespace sjtu {
           } else { // left branch and right branch all exist
             node *new_root, *origin_parent = ptr->parent;
             if (ptr->left->height - ptr->right->height > 1) { // LX
-              if (ptr->left->left->height > ptr->left->right->height) { // LL
-                new_root = ptr->left;
-                node *origin_r_child = ptr->left->right;
-                new_root->parent = origin_parent;
-                new_root->right = ptr;
-                origin_r_child->parent = ptr;
-                ptr->left = origin_r_child;
-                ptr->parent = new_root;
-              } else { // LR
+              if (ptr->left->left->height < ptr->left->right->height) { // LR
                 new_root = ptr->left->right;
                 if (new_root->left) {
                   node *origin_l = ptr->left, *origin_lrl = new_root->left;
@@ -1009,20 +1061,17 @@ namespace sjtu {
                   ptr->height = std::max(origin_lrr->height, ptr->right->height) + 1;
                   new_root->height = std::max(origin_l->height, ptr->height) + 1;
                 }
+              } else { // LL
+                new_root = ptr->left;
+                node *origin_r_child = ptr->left->right;
+                new_root->parent = origin_parent;
+                new_root->right = ptr;
+                origin_r_child->parent = ptr;
+                ptr->left = origin_r_child;
+                ptr->parent = new_root;
               }
             } else if (ptr->left->height - ptr->right->height < -1) { // RX
-              if (ptr->right->left->height < ptr->right->right->height) { // RR
-                new_root = ptr->right;
-                node *origin_rl = new_root->left;
-                ptr->parent = new_root;
-                ptr->right = origin_rl;
-                new_root->parent = origin_parent;
-                new_root->left = ptr;
-                origin_rl->parent = ptr;
-                ptr->height = std::max(ptr->left->height, ptr->right->height) + 1;
-                new_root->right->height = new_root->right->right->height + 1;
-                new_root->height = std::max(ptr->height, new_root->right->height) + 1;
-              } else { // RL
+              if (ptr->right->left->height > ptr->right->right->height) { // RL
                 new_root = ptr->right->left;
                 if (new_root->left) {
                   node *origin_r = ptr->right, *origin_rll = new_root->left;
@@ -1050,8 +1099,23 @@ namespace sjtu {
                   origin_r->height = std::max(origin_rlr->height, origin_r->right->height) + 1;
                   new_root->height = std::max(ptr->height, origin_r->height) + 1;
                 }
+              } else { // RR
+                new_root = ptr->right;
+                node *origin_rl = new_root->left;
+                ptr->parent = new_root;
+                ptr->right = origin_rl;
+                new_root->parent = origin_parent;
+                new_root->left = ptr;
+                origin_rl->parent = ptr;
+                ptr->height = std::max(ptr->left->height, ptr->right->height) + 1;
+                new_root->right->height = new_root->right->right->height + 1;
+                new_root->height = std::max(ptr->height, new_root->right->height) + 1;
               }
             } else {
+              if (ptr->parent == nullptr) {
+                break;
+              }
+              ptr = ptr->parent;
               continue;
             }
             if (origin_parent == nullptr) { // change root pointer
@@ -1064,6 +1128,10 @@ namespace sjtu {
               cut_height(new_root);
             }
           }
+          if (ptr->parent == nullptr) {
+            break;
+          }
+          ptr = ptr->parent;
         }
       }
     }
@@ -1311,7 +1379,7 @@ namespace sjtu {
           pos.ptr->vt = nullptr;
           delete pos.ptr;
           pos.ptr = nullptr;
-          maintain_balance(pos.ptr, false);
+          maintain_balance(r_child, false);
         } else { // parent's right child
           parent->right = r_child;
           r_child->parent = parent;
@@ -1320,7 +1388,7 @@ namespace sjtu {
           pos.ptr->vt = nullptr;
           delete pos.ptr;
           pos.ptr = nullptr;
-          maintain_balance(pos.ptr, false);
+          maintain_balance(r_child, false);
         }
         --num;
       } else if (pos.ptr->right == nullptr) { // only have left child
