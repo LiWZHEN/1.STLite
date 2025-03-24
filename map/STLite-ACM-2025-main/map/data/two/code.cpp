@@ -184,7 +184,8 @@ void tester2() {
 			console.showProgress();
 		}
 		auto itB = srcmap.begin();
-		for (auto itA = stdmap.begin(); itA != stdmap.end(); ++itA, ++itB) {
+		int round = 0;
+		for (auto itA = stdmap.begin(); itA != stdmap.end(); ++itA, ++itB, ++round) {
 			if ((itA -> first).val != (itA -> first).val || (itB -> first).val != (itB -> first).val) {
 				console.fail();
 				return;

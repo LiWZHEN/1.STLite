@@ -62,29 +62,33 @@ namespace sjtu {
 
     public:
       node *ptr = nullptr;
-      node *map_root = nullptr;
+      // node *map_root = nullptr;
       map *mp = nullptr;
       bool at_end = false;
+
       iterator() {
         // TODO
         ptr = nullptr;
-        map_root = nullptr;
+        // map_root = nullptr;
         mp = nullptr;
+        // at_begin = false;
         at_end = false;
       }
 
       iterator(const iterator &other) {
         // TODO
         ptr = other.ptr;
-        map_root = other.map_root;
+        // map_root = other.map_root;
         mp = other.mp;
+        // at_begin = other.at_begin;
         at_end = other.at_end;
       }
 
-      iterator(node *n, node *r, map *m, bool e) {
+      iterator(node *n, map *m, bool e) {
         ptr = n;
-        map_root = r;
+        // map_root = r;
         mp = m;
+        // at_begin = b;
         at_end = e;
       }
 
@@ -92,28 +96,57 @@ namespace sjtu {
        * TODO iter++
        */
       iterator operator++(int) {
+        iterator it(*this);
         if (at_end) {
           throw invalid_iterator();
         }
-        iterator it(*this);
-        if (it.ptr == nullptr) {
+        /*if (at_begin && ptr == mp->the_end) {
+          if (mp->root == nullptr) {
+            throw invalid_iterator();
+          }
+          ptr = mp->root;
+          while (ptr->left) {
+            ptr = ptr->left;
+          }
+          at_begin = false;
+          if (ptr->right) {
+            ptr = ptr->right;
+            while (ptr->left) {
+              ptr = ptr->left;
+            }
+            return it;
+          }
+          while (ptr->parent && ptr == ptr->parent->right) {
+            ptr = ptr->parent;
+          }
+          if (ptr->parent == nullptr) {
+            at_end = true;
+            ptr = mp->the_end;
+            return it;
+          }
+          ptr = ptr->parent;
+          return it;
+        }*/
+        if (ptr == nullptr) {
           throw invalid_iterator();
         }
-        if (it.ptr->right) {
-          it.ptr = it.ptr->right;
-          while(it.ptr->left) {
-            it.ptr = it.ptr->left;
+        if (ptr->right) {
+          ptr = ptr->right;
+          while(ptr->left) {
+            ptr = ptr->left;
           }
           return it;
         }
         // the largest in this branch
-        while (it.ptr->parent && it.ptr == it.ptr->parent->right) {
-          it.ptr = it.ptr->parent;
+        while (ptr->parent && ptr == ptr->parent->right) {
+          ptr = ptr->parent;
         }
-        if (it.ptr->parent == nullptr) {
-          throw invalid_iterator();
+        if (ptr->parent == nullptr) {
+          ptr = mp->the_end;
+          at_end = true;
+          return it;
         }
-        it.ptr = it.ptr->parent;
+        ptr = ptr->parent;
         return it;
       }
 
@@ -124,6 +157,33 @@ namespace sjtu {
         if (at_end) {
           throw invalid_iterator();
         }
+        /*if (at_begin && ptr == mp->the_end) {
+          if (mp->root == nullptr) {
+            throw invalid_iterator();
+          }
+          ptr = mp->root;
+          while (ptr->left) {
+            ptr = ptr->left;
+          }
+          at_begin = false;
+          if (ptr->right) {
+            ptr = ptr->right;
+            while (ptr->left) {
+              ptr = ptr->left;
+            }
+            return *this;
+          }
+          while (ptr->parent && ptr == ptr->parent->right) {
+            ptr = ptr->parent;
+          }
+          if (ptr->parent == nullptr) {
+            at_end = true;
+            ptr = mp->the_end;
+            return *this;
+          }
+          ptr = ptr->parent;
+          return *this;
+        }*/
         if (ptr == nullptr) {
           throw invalid_iterator();
         }
@@ -139,7 +199,9 @@ namespace sjtu {
           ptr = ptr->parent;
         }
         if (ptr->parent == nullptr) {
-          throw invalid_iterator();
+          ptr = mp->the_end;
+          at_end = true;
+          return *this;
         }
         ptr = ptr->parent;
         return *this;
@@ -149,35 +211,36 @@ namespace sjtu {
        * TODO iter--
        */
       iterator operator--(int) {
+        iterator it(*this);
         if (at_end) {
-          if (map_root == nullptr) {
+          if (mp->root == nullptr) {
             throw invalid_iterator();
           }
-          node *new_ptr = map_root;
-          while (new_ptr->right) {
-            new_ptr = new_ptr->right;
+          ptr = mp->root;
+          while (ptr->right) {
+            ptr = ptr->right;
           }
-          return iterator(new_ptr, map_root, mp, false);
+          at_end = false;
+          return it;
         }
-        iterator it(*this);
-        if (it.ptr == nullptr) {
+        if (ptr == nullptr) {
           throw invalid_iterator();
         }
-        if (it.ptr->left) {
-          it.ptr = it.ptr->left;
-          while(it.ptr->right) {
-            it.ptr = it.ptr->right;
+        if (ptr->left) {
+          ptr = ptr->left;
+          while(ptr->right) {
+            ptr = ptr->right;
           }
           return it;
         }
         // the smallest in this branch
-        while (it.ptr->parent && it.ptr == it.ptr->parent->left) {
-          it.ptr = it.ptr->parent;
+        while (ptr->parent && ptr == ptr->parent->left) {
+          ptr = ptr->parent;
         }
-        if (it.ptr->parent == nullptr) {
+        if (ptr->parent == nullptr) {
           throw invalid_iterator();
         }
-        it.ptr = it.ptr->parent;
+        ptr = ptr->parent;
         return it;
       }
 
@@ -186,10 +249,10 @@ namespace sjtu {
        */
       iterator &operator--() {
         if (at_end) {
-          if (map_root == nullptr) {
+          if (mp->root == nullptr) {
             throw invalid_iterator();
           }
-          ptr = map_root;
+          ptr = mp->root;
           while (ptr->right) {
             ptr = ptr->right;
           }
@@ -218,24 +281,24 @@ namespace sjtu {
       }
 
       value_type &operator*() const {
-        if (ptr == nullptr || map_root == nullptr) {
+        if (ptr == nullptr || mp->root == nullptr) {
           throw invalid_iterator();
         }
-        const Key k = ptr->vt->first;
-        node *p = map_root;
+        Key k = ptr->vt->first;
+        node *p = mp->root;
         while (true) {
-          if (ls(p->vt->first, k)) { // current key is smaller, search in the right branch
+          if (mp->ls(p->vt->first, k)) { // current key is smaller, search in the right branch
             p = p->right;
             if (p == nullptr) {
               throw invalid_iterator();
             }
-          } else if (ls(k, p->vt->first)) { // current key is larger, search in the left branch
+          } else if (mp->ls(k, p->vt->first)) { // current key is larger, search in the left branch
             p = p->left;
             if (p == nullptr) {
               throw invalid_iterator();
             }
           } else { // target founded
-            return p->vt->second;
+            return *(p->vt);
           }
         }
       }
@@ -270,6 +333,15 @@ namespace sjtu {
         if (ptr == nullptr) {
           return nullptr;
         }
+        /*node *p = ptr;
+        if (at_begin && ptr == mp->the_end) {
+          if (mp->root) {
+            p = mp->root;
+            while (p->left) {
+              p = p->left;
+            }
+          }
+        }*/
         return ptr->vt;
       }
     };
@@ -279,39 +351,45 @@ namespace sjtu {
       //  and it should be able to construct from an iterator.
     private:
       // data members.
-      const node *ptr = nullptr;
-      const node *map_root = nullptr;
-      const map *mp;
-      bool at_end = false;
     public:
+      const node *ptr = nullptr;
+      // const node *map_root = nullptr;
+      const map *mp;
+      // bool at_begin = false;
+      bool at_end = false;
+
       const_iterator() {
         // TODO
         ptr = nullptr;
-        map_root = nullptr;
+        // map_root = nullptr;
         mp = nullptr;
+        // at_begin = false;
         at_end = false;
       }
 
       const_iterator(const const_iterator &other) {
         // TODO
         ptr = other.ptr;
-        map_root = other.map_root;
+        // map_root = other.map_root;
         mp = other.mp;
+        // at_begin = other.at_begin;
         at_end = other.at_end;
       }
 
       const_iterator(const iterator &other) {
         // TODO
         ptr = other.ptr;
-        map_root = other.map_root;
+        // map_root = other.map_root;
         mp = other.mp;
+        // at_begin = other.at_begin;
         at_end = other.at_end;
       }
 
-      const_iterator(const node *n, const node *r, const map *m, bool e) {
+      const_iterator(const node *n, const map *m, bool e) {
         ptr = n;
-        map_root = r;
+        // map_root = r;
         mp = m;
+        // at_begin = b;
         at_end = e;
       }
 
@@ -323,6 +401,33 @@ namespace sjtu {
           throw invalid_iterator();
         }
         const_iterator it(*this);
+        /*if (at_begin && ptr == the_end) {
+          if (mp->root == nullptr) {
+            throw invalid_iterator();
+          }
+          ptr = mp->root;
+          while (ptr->left) {
+            ptr = ptr->left;
+          }
+          at_begin = false;
+          if (ptr->right) {
+            ptr = ptr->right;
+            while (ptr->left) {
+              ptr = ptr->left;
+            }
+            return it;
+          }
+          while (ptr->parent && ptr == ptr->parent->right) {
+            ptr = ptr->parent;
+          }
+          if (ptr->parent == nullptr) {
+            at_end = true;
+            ptr = mp->the_end;
+            return it;
+          }
+          ptr = ptr->parent;
+          return it;
+        }*/
         if (ptr == nullptr) {
           throw invalid_iterator();
         }
@@ -353,6 +458,33 @@ namespace sjtu {
         if (at_end) {
           throw invalid_iterator();
         }
+        /*if (at_begin && ptr == mp->the_end) {
+          if (mp->root == nullptr) {
+            throw invalid_iterator();
+          }
+          ptr = mp->root;
+          while (ptr->left) {
+            ptr = ptr->left;
+          }
+          at_begin = false;
+          if (ptr->right) {
+            ptr = ptr->right;
+            while (ptr->left) {
+              ptr = ptr->left;
+            }
+            return *this;
+          }
+          while (ptr->parent && ptr == ptr->parent->right) {
+            ptr = ptr->parent;
+          }
+          if (ptr->parent == nullptr) {
+            at_end = true;
+            ptr = mp->the_end;
+            return *this;
+          }
+          ptr = ptr->parent;
+          return *this;
+        }*/
         if (ptr == nullptr) {
           throw invalid_iterator();
         }
@@ -368,7 +500,7 @@ namespace sjtu {
           ptr = ptr->parent;
         }
         if (ptr->parent == nullptr) {
-          ptr = the_end;
+          ptr = mp->the_end;
           at_end = true;
         } else {
           ptr = ptr->parent;
@@ -382,7 +514,7 @@ namespace sjtu {
       const_iterator operator--(int) {
         const_iterator it(*this);
         if (at_end) {
-          if (map_root == nullptr) {
+          if (mp->root == nullptr) {
             throw invalid_iterator();
           }
           while (ptr->right) {
@@ -395,7 +527,7 @@ namespace sjtu {
         }
         if (ptr->left) {
           ptr = ptr->left;
-          while(it.ptr->right) {
+          while(ptr->right) {
             ptr = ptr->right;
           }
           return it;
@@ -416,10 +548,10 @@ namespace sjtu {
        */
       const_iterator &operator--() {
         if (at_end) {
-          if (map_root == nullptr) {
+          if (mp->root == nullptr) {
             throw invalid_iterator();
           }
-          ptr = map_root;
+          ptr = mp->root;
           while (ptr->right) {
             ptr = ptr->right;
           }
@@ -448,24 +580,24 @@ namespace sjtu {
       }
 
       const value_type &operator*() const {
-        if (ptr == nullptr || map_root == nullptr) {
+        if (ptr == nullptr || mp->root == nullptr) {
           throw invalid_iterator();
         }
         const Key k = ptr->vt->first;
-        node *p = map_root;
+        const node *p = mp->root;
         while (true) {
-          if (ls(p->vt->first, k)) { // current key is smaller, search in the right branch
+          if (mp->ls(p->vt->first, k)) { // current key is smaller, search in the right branch
             p = p->right;
             if (p == nullptr) {
               throw invalid_iterator();
             }
-          } else if (ls(k, p->vt->first)) { // current key is larger, search in the left branch
+          } else if (mp->ls(k, p->vt->first)) { // current key is larger, search in the left branch
             p = p->left;
             if (p == nullptr) {
               throw invalid_iterator();
             }
           } else { // target founded
-            return p->vt->second;
+            return *(p->vt);
           }
         }
       }
@@ -498,14 +630,42 @@ namespace sjtu {
        * See <http://kelvinh.github.io/blog/2013/11/20/overloading-of-member-access-operator-dash-greater-than-symbol-in-cpp/> for help.
        */
       const value_type *operator->() const noexcept {
-        if (ptr == nullptr) {
+        const node *p = ptr;
+        /*if (at_begin && ptr == mp->the_end) {
+          p = mp->root;
+          if (p == nullptr) {
+            return nullptr;
+          }
+          while (p->left) {
+            p = p->left;
+          }
+        }*/
+        if (p == nullptr) {
           return nullptr;
         }
-        return ptr->vt;
+        return p->vt;
       }
     };
 
     void copy(node *&target, const node *source, node *parent) {
+      if (source == nullptr) {
+        if (target) {
+          if (parent) {
+            if (parent->left == target) {
+              parent->left = nullptr;
+            } else {
+              parent->right = nullptr;
+            }
+          } else {
+            root = nullptr;
+          }
+          delete target->vt;
+          target->vt = nullptr;
+          delete target;
+          target = nullptr;
+        }
+        return;
+      }
       if (target == nullptr) {
         target = new node;
       }
@@ -1302,26 +1462,26 @@ namespace sjtu {
      */
     iterator begin() {
       if (root == nullptr) {
-        return iterator(the_end, nullptr, this, true);
+        return iterator(the_end, this, true);
       }
       node *ptr = root;
       while (ptr->left) {
         ptr = ptr->left;
       }
-      return iterator(ptr, root, this, false);
+      return iterator(ptr, this, false);
     }
 
     const_iterator cbegin() const {
       if (root == nullptr) {
         const node *p = the_end;
-        return const_iterator(p, nullptr, this, true);
+        return const_iterator(p, this, true);
       }
       node *ptr = root;
       while (ptr->left) {
         ptr = ptr->left;
       }
-      const node *r = root, *p = ptr;
-      return const_iterator(p, r, this, false);
+      const node *p = ptr;
+      return const_iterator(p, this, false);
     }
 
     /**
@@ -1329,11 +1489,11 @@ namespace sjtu {
      * in fact, it returns past-the-end.
      */
     iterator end() {
-      return iterator(the_end, root, this, true);
+      return iterator(the_end, this, true);
     }
 
     const_iterator cend() const {
-      return const_iterator(the_end, root, this, true);
+      return const_iterator(the_end, this, true);
     }
 
     /**
@@ -1381,7 +1541,7 @@ namespace sjtu {
         } else if (ls(value.first, p->vt->first)) { // current key is larger, search in the left branch
           p = p->left;
         } else { // target founded
-          return {iterator(p, root, this, false), success};
+          return {iterator(p, this, false), success};
         }
       }
     }
@@ -1392,12 +1552,22 @@ namespace sjtu {
      * throw if pos pointed to a bad element (pos == this->end() || pos points an element out of this)
      */
     void erase(iterator pos, bool changed = false) {
-      if (pos.at_end || pos.map_root == nullptr || pos.ptr == nullptr) {
+      if (pos.mp != this) {
         throw invalid_iterator();
       }
+      if (pos.at_end || pos.mp->root == nullptr || pos.ptr == nullptr) {
+        throw invalid_iterator();
+      }
+      /*if (pos.at_begin) {
+        pos.at_begin = false;
+        pos.ptr = pos.mp->root;
+        while (pos.ptr->left) {
+          pos.ptr = pos.ptr->left;
+        }
+      }*/
       if (!changed) {
         try {
-          node *p = pos.map_root;
+          node *p = pos.mp->root;
           Key target = pos.ptr->vt->first;
           while (true) {
             if (ls(p->vt->first, target)) {
@@ -1604,7 +1774,7 @@ namespace sjtu {
         }
 
         // delete pos.ptr after changing
-        iterator changed_pos(pos.ptr, root, this, false);
+        iterator changed_pos(pos.ptr, this, false);
         erase(changed_pos, true);
       }
     }
@@ -1666,11 +1836,11 @@ namespace sjtu {
               throw index_out_of_bound();
             }
           } else { // target founded
-            return iterator(ptr, root, this, false);
+            return iterator(ptr, this, false);
           }
         }
       } catch (index_out_of_bound) {
-        return iterator(the_end, root, this, true);
+        return iterator(the_end, this, true);
       }
     }
 
@@ -1692,11 +1862,11 @@ namespace sjtu {
               throw index_out_of_bound();
             }
           } else { // target founded
-            return const_iterator(ptr, root, this, false);
+            return const_iterator(ptr, this, false);
           }
         }
       } catch (index_out_of_bound) {
-        return const_iterator(the_end, root, this, true);
+        return const_iterator(the_end, this, true);
       }
     }
 
