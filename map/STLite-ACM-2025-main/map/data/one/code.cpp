@@ -116,4 +116,5 @@ void tester(void) {
 int main(void) {
 	tester();
 	std::cout << Integer::counter << std::endl;
+	return 0;
 }

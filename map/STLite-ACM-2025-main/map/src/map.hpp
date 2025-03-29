@@ -706,8 +706,9 @@ namespace sjtu {
         }
         throw index_out_of_bound();
       } catch (index_out_of_bound &) {
-        node *inserted = Insert(key, T());
-        return inserted->vt->second;
+        value_type vt(key, T());
+        pair<iterator, bool> inserted = insert(vt);
+        return inserted.first.ptr->vt->second;
       }
     }
 
