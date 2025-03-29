@@ -1,3 +1,7 @@
 .idea
 cmake-build-debug
 /map/STLite-ACM-2025-main/map/self_easy_test
+data
+README.md
+corner_data
+tutorials
