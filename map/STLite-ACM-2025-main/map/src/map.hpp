@@ -56,6 +56,16 @@ namespace sjtu {
       }
     }
 
+    void UpdateAllHeight(node *n) {
+      if (n != nullptr) {
+        int height = std::max(ComputeHeight(n->left), ComputeHeight(n->right)) + 1;
+        if (height != n->height) {
+          n->height = height;
+          UpdateAllHeight(n->parent);
+        }
+      }
+    }
+
     int ComputeBalance(node *n) {
       if (n == nullptr) {
         return 0;
@@ -155,7 +165,7 @@ namespace sjtu {
      * only insert, update num, not necessarily balanced.
      * throw key_already_exist if key already exist
      */
-    node *Insert(Key key, T value) {
+    node *Insert(const Key &key, const T &value) {
       node *ptr = root;
       node *parent = nullptr;
       bool is_left = true;
@@ -193,7 +203,6 @@ namespace sjtu {
       if (p == nullptr) {
         return;
       }
-      UpdateHeight(p);
       if (ComputeBalance(p) > 1) { // LX
         if (ComputeBalance(p->left) < 0) { // LR
           LRotate(p->left);
@@ -211,7 +220,7 @@ namespace sjtu {
         }
         KeepBalance(p->parent->parent);
       } else {
-        KeepBalance(p->parent);
+        UpdateAllHeight(p);
       }
     }
 
@@ -823,11 +832,7 @@ namespace sjtu {
           LRotate(keeper);
         }
       }
-      node *updater = keeper->parent;
-      while (updater->parent) {
-        updater = updater->parent;
-        UpdateHeight(updater);
-      }
+      UpdateAllHeight(keeper->parent->parent);
       return {iterator(ptr, this), true};
     }
 
