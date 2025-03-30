@@ -152,50 +152,39 @@ namespace sjtu {
     }
 
     /**
-     * only insert, update height and num, not necessarily balanced.
+     * only insert, update num, not necessarily balanced.
      * throw key_already_exist if key already exist
      */
     node *Insert(Key key, T value) {
-      if (root == nullptr) {
-        root = new node;
-        root->height = 0;
-        root->vt = new value_type({key, value});
-        ++num;
-        return root;
-      }
       node *ptr = root;
-      node *parent = root;
-      bool l_son = false;
+      node *parent = nullptr;
+      bool is_left = true;
+
       while (ptr) {
+        parent = ptr;
         if (ls(key, ptr->vt->first)) {
-          parent = ptr;
           ptr = ptr->left;
-          l_son = true;
+          is_left = true;
         } else if (ls(ptr->vt->first, key)) {
-          parent = ptr;
           ptr = ptr->right;
-          l_son = false;
+          is_left = false;
         } else {
           throw key_already_exist();
         }
       }
-      if (l_son) {
-        parent->left = new node;
-        ptr = parent->left;
-        ptr->vt = new value_type({key, value});
-        ptr->parent = parent;
+
+      ptr = new node;
+      ptr->vt = new value_type({key, value});
+      ptr->parent = parent;
+
+      if (parent == nullptr) {
+        root = ptr;
+      } else if (is_left) {
+        parent->left = ptr;
       } else {
-        parent->right = new node;
-        ptr = parent->right;
-        ptr->vt = new value_type({key, value});
-        ptr->parent = parent;
+        parent->right = ptr;
       }
-      /*node *updater = ptr;
-      while (updater) {
-        UpdateHeight(updater);
-        updater = updater->parent;
-      }*/
-      ptr->height = 0;
+
       ++num;
       return ptr;
     }
