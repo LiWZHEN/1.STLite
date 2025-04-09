@@ -198,14 +198,14 @@ namespace sjtu {
       }
       if (is_left) {
         node *brother = parent->right;
-        if (brother->red) {
+        if (brother && brother->red) {
           parent->red = true;
           brother->red = false;
           RR(parent);
         }
         brother = parent->right;
-        const bool left_is_red = brother->left && brother->left->red, right_is_red =
-            brother->right && brother->right->red;
+        const bool left_is_red = brother->left && brother->left->red,
+            right_is_red = brother->right && brother->right->red;
         if (!left_is_red && !right_is_red) {
           if (parent->red) {
             parent->red = false;
@@ -221,11 +221,14 @@ namespace sjtu {
               }
             }
           }
-        } else if (right_is_red && !left_is_red) {
+        } else if (right_is_red) {
+          brother->red = parent->red;
+          parent->red = false;
           brother->right->red = false;
           RR(parent);
         } else {
-          brother->left->red = false;
+          brother->left->red = parent->red;
+          parent->red = false;
           RL(parent);
         }
       } else {
@@ -236,8 +239,8 @@ namespace sjtu {
           LL(parent);
         }
         brother = parent->left;
-        const bool left_is_red = brother->left && brother->left->red, right_is_red =
-            brother->right && brother->right->red;
+        const bool left_is_red = brother->left && brother->left->red,
+            right_is_red = brother->right && brother->right->red;
         if (!left_is_red && !right_is_red) {
           if (parent->red) {
             parent->red = false;
@@ -253,11 +256,14 @@ namespace sjtu {
               }
             }
           }
-        } else if (left_is_red && !right_is_red) {
+        } else if (left_is_red) {
+          brother->red = parent->red;
+          parent->red = false;
           brother->left->red = false;
           LL(parent);
         } else {
-          brother->right->red = false;
+          brother->right->red = parent->red;
+          parent->red = false;
           LR(parent);
         }
       }
@@ -322,7 +328,7 @@ namespace sjtu {
       node *father = p->parent, *grandpa = father->parent;
       if (grandpa->left == father) {
         // father is the left son
-        if (grandpa->right->red) {
+        if (grandpa->right && grandpa->right->red) {
           // uncle is red
           father->red = false;
           grandpa->right->red = false;
