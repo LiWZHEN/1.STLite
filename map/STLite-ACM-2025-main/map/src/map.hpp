@@ -9,6 +9,7 @@
 #include <cstddef>
 #include "utility.hpp"
 #include "exceptions.hpp"
+// #include <iostream> // todo: for debugging
 
 namespace sjtu {
   class key_already_exist : public exception {
@@ -427,6 +428,8 @@ namespace sjtu {
   public:
     node *root = nullptr;
     node *end_node = nullptr;
+    node *smallest = nullptr;
+    node *largest = nullptr;
     int num = 0;
     Compare ls;
 
@@ -531,10 +534,7 @@ namespace sjtu {
           if (mp->root == nullptr) {
             throw invalid_iterator();
           }
-          ptr = mp->root;
-          while (ptr->right) {
-            ptr = ptr->right;
-          }
+          ptr = mp->largest;
         } else {
           if (ptr->left) {
             ptr = ptr->left;
@@ -569,10 +569,7 @@ namespace sjtu {
           if (mp->root == nullptr) {
             throw invalid_iterator();
           }
-          ptr = mp->root;
-          while (ptr->right) {
-            ptr = ptr->right;
-          }
+          ptr = mp->largest;
         } else {
           if (ptr->left) {
             ptr = ptr->left;
@@ -728,10 +725,7 @@ namespace sjtu {
           if (mp->root == nullptr) {
             throw invalid_iterator();
           }
-          ptr = mp->root;
-          while (ptr->right) {
-            ptr = ptr->right;
-          }
+          ptr = mp->largest;
         } else {
           if (ptr->left) {
             ptr = ptr->left;
@@ -765,10 +759,7 @@ namespace sjtu {
           if (mp->root == nullptr) {
             throw invalid_iterator();
           }
-          ptr = mp->root;
-          while (ptr->right) {
-            ptr = ptr->right;
-          }
+          ptr = mp->largest;
         } else {
           if (ptr->left) {
             ptr = ptr->left;
@@ -840,6 +831,16 @@ namespace sjtu {
       end_node = new node;
       num = other.num;
       Copy(root, other.root, nullptr);
+      if (root) {
+        smallest = root;
+        while (smallest->left) {
+          smallest = smallest->left;
+        }
+        largest = root;
+        while (largest->right) {
+          largest = largest->right;
+        }
+      }
     }
 
     /**
@@ -852,7 +853,19 @@ namespace sjtu {
       num = other.num;
       Clear(root);
       root = nullptr;
+      smallest = nullptr;
+      largest = nullptr;
       Copy(root, other.root, nullptr);
+      if (root) {
+        smallest = root;
+        while (smallest->left) {
+          smallest = smallest->left;
+        }
+        largest = root;
+        while (largest->right) {
+          largest = largest->right;
+        }
+      }
       return *this;
     }
 
@@ -949,11 +962,8 @@ namespace sjtu {
       it.mp = this;
       if (root == nullptr) {
         it.ptr = end_node;
-        return it;
-      }
-      it.ptr = root;
-      while (it.ptr->left) {
-        it.ptr = it.ptr->left;
+      } else {
+        it.ptr = smallest;
       }
       return it;
     }
@@ -963,11 +973,8 @@ namespace sjtu {
       it.mp = this;
       if (root == nullptr) {
         it.ptr = end_node;
-        return it;
-      }
-      it.ptr = root;
-      while (it.ptr->left) {
-        it.ptr = it.ptr->left;
+      } else {
+        it.ptr = smallest;
       }
       return it;
     }
@@ -1022,6 +1029,14 @@ namespace sjtu {
         iterator it = find(value.first);
         return {it, false};
       }
+      if (num == 1) {
+        smallest = ptr;
+        largest = ptr;
+      } else if (ls(value.first, smallest->vt->first)) {
+        smallest = ptr;
+      } else if (ls(largest->vt->first, value.first)) {
+        largest = ptr;
+      }
       InsertBalance(ptr);
       return {iterator(ptr, this), true};
     }
@@ -1034,6 +1049,14 @@ namespace sjtu {
     void erase(iterator pos) {
       if (pos.mp != this || pos.ptr == end_node || pos.ptr == nullptr || pos != find(pos.ptr->vt->first)) {
         throw invalid_iterator();
+      }
+      if (num == 1) {
+        smallest = nullptr;
+        largest = nullptr;
+      } else if (pos == begin()) {
+        smallest = (++begin()).ptr;
+      } else if (pos == --end()) {
+        largest = (--(--end())).ptr;
       }
       node *target = ReplaceAndLocate(*pos.ptr->vt);
       RemoveAndBalance(target);
@@ -1093,6 +1116,54 @@ namespace sjtu {
       }
       return const_iterator(end_node, this);
     }
+    /*// todo: for debugging
+    void PrintEdge(node *p) {
+      if (p == nullptr) {
+        return;
+      }
+
+      if (p->left) {
+        if (p->red) {
+          std::cout << "\033[31m" << p->vt->first << " ";
+        } else {
+          std::cout << "\033[0m" << p->vt->first << " ";
+        }
+        if (p->left->red) {
+          std::cout << "\033[31m" << p->left->vt->first << "\n";
+        } else {
+          std::cout << "\033[0m" << p->left->vt->first << "\n";
+        }
+      }
+      if (p->right) {
+        if (p->red) {
+          std::cout << "\033[31m" << p->vt->first << " ";
+        } else {
+          std::cout << "\033[0m" << p->vt->first << " ";
+        }
+        if (p->right->red) {
+          std::cout << "\033[31m" << p->right->vt->first << "\n";
+        } else {
+          std::cout << "\033[0m" << p->right->vt->first << "\n";
+        }
+      }
+      PrintEdge(p->left);
+      PrintEdge(p->right);
+    }
+
+    void PrintKey(node *p) {
+      if (p == nullptr) {
+        return;
+      }
+
+      if (p->red) {
+        std::cout << "\033[31m" << p->vt->first << "\n";
+      } else {
+        std::cout << "\033[0m" << p->vt->first << "\n";
+      }
+
+      PrintKey(p->left);
+      PrintKey(p->right);
+    }*/
   };
 }
 
