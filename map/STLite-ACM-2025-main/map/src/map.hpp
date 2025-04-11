@@ -9,7 +9,6 @@
 #include <cstddef>
 #include "utility.hpp"
 #include "exceptions.hpp"
-// #include <iostream> // todo: for debugging
 
 namespace sjtu {
   class key_already_exist : public exception {
@@ -317,54 +316,53 @@ namespace sjtu {
     }
 
     void InsertBalance(node *p) {
+      while (p->parent && p->parent->red) {
+        // father is red
+        node *father = p->parent, *grandpa = father->parent;
+        if (grandpa->left == father) {
+          // father is the left son
+          if (grandpa->right && grandpa->right->red) {
+            // uncle is red
+            father->red = false;
+            grandpa->right->red = false;
+            grandpa->red = true;
+            p = grandpa;
+          } else {
+            // uncle is black
+            grandpa->red = true;
+            if (p == father->left) {
+              father->red = false;
+              LL(grandpa);
+            } else {
+              p->red = false;
+              LR(grandpa);
+            }
+            return;
+          }
+        } else {
+          // father is the right son
+          if (grandpa->left && grandpa->left->red) {
+            // uncle is red
+            father->red = false;
+            grandpa->left->red = false;
+            grandpa->red = true;
+            p = grandpa;
+          } else {
+            // uncle is black
+            grandpa->red = true;
+            if (p == father->right) {
+              father->red = false;
+              RR(grandpa);
+            } else {
+              p->red = false;
+              RL(grandpa);
+            }
+            return;
+          }
+        }
+      }
       if (p->parent == nullptr) {
         p->red = false;
-        return;
-      }
-      if (!p->parent->red) {
-        return;
-      }
-
-      // father is red
-      node *father = p->parent, *grandpa = father->parent;
-      if (grandpa->left == father) {
-        // father is the left son
-        if (grandpa->right && grandpa->right->red) {
-          // uncle is red
-          father->red = false;
-          grandpa->right->red = false;
-          grandpa->red = true;
-          InsertBalance(grandpa);
-        } else {
-          // uncle is black
-          grandpa->red = true;
-          if (p == father->left) {
-            father->red = false;
-            LL(grandpa);
-          } else {
-            p->red = false;
-            LR(grandpa);
-          }
-        }
-      } else {
-        // father is the right son
-        if (grandpa->left && grandpa->left->red) {
-          // uncle is red
-          father->red = false;
-          grandpa->left->red = false;
-          grandpa->red = true;
-          InsertBalance(grandpa);
-        } else {
-          // uncle is black
-          grandpa->red = true;
-          if (p == father->right) {
-            father->red = false;
-            RR(grandpa);
-          } else {
-            p->red = false;
-            RL(grandpa);
-          }
-        }
       }
     }
 
@@ -1116,54 +1114,7 @@ namespace sjtu {
       }
       return const_iterator(end_node, this);
     }
-    /*// todo: for debugging
-    void PrintEdge(node *p) {
-      if (p == nullptr) {
-        return;
-      }
 
-      if (p->left) {
-        if (p->red) {
-          std::cout << "\033[31m" << p->vt->first << " ";
-        } else {
-          std::cout << "\033[0m" << p->vt->first << " ";
-        }
-        if (p->left->red) {
-          std::cout << "\033[31m" << p->left->vt->first << "\n";
-        } else {
-          std::cout << "\033[0m" << p->left->vt->first << "\n";
-        }
-      }
-      if (p->right) {
-        if (p->red) {
-          std::cout << "\033[31m" << p->vt->first << " ";
-        } else {
-          std::cout << "\033[0m" << p->vt->first << " ";
-        }
-        if (p->right->red) {
-          std::cout << "\033[31m" << p->right->vt->first << "\n";
-        } else {
-          std::cout << "\033[0m" << p->right->vt->first << "\n";
-        }
-      }
-      PrintEdge(p->left);
-      PrintEdge(p->right);
-    }
-
-    void PrintKey(node *p) {
-      if (p == nullptr) {
-        return;
-      }
-
-      if (p->red) {
-        std::cout << "\033[31m" << p->vt->first << "\n";
-      } else {
-        std::cout << "\033[0m" << p->vt->first << "\n";
-      }
-
-      PrintKey(p->left);
-      PrintKey(p->right);
-    }*/
   };
 }
 
