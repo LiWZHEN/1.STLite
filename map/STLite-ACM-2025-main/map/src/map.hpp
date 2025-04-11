@@ -9,6 +9,7 @@
 #include <cstddef>
 #include "utility.hpp"
 #include "exceptions.hpp"
+// #include <iostream> // todo: for debugging
 
 namespace sjtu {
   class key_already_exist : public exception {
@@ -76,7 +77,7 @@ namespace sjtu {
     }
 
     /**
-     * throw key_already_exist if key is already existed
+     * return nullptr if key is already existed
      */
     node *Insert(const value_type &v) {
       if (num == 0) {
@@ -84,25 +85,26 @@ namespace sjtu {
         ++num;
         return root;
       }
-      node *p = root, *n = root;
-      while (n) {
-        p = n;
-        if (ls(v.first, n->vt->first)) {
-          n = n->left;
-        } else if (ls(n->vt->first, v.first)) {
-          n = n->right;
+      node *p = root;
+      while (true) {
+        if (ls(v.first, p->vt->first)) {
+          if (!p->left) {
+            p->left = new node(true, v, p);
+            ++num;
+            return p->left;
+          }
+          p = p->left;
+        } else if (ls(p->vt->first, v.first)) {
+          if (!p->right) {
+            p->right = new node(true, v, p);
+            ++num;
+            return p->right;
+          }
+          p = p->right;
         } else {
-          throw key_already_exist();
+          return nullptr;
         }
       }
-      if (ls(v.first, p->vt->first)) {
-        p->left = new node(true, v, p);
-        ++num;
-        return p->left;
-      }
-      p->right = new node(true, v, p);
-      ++num;
-      return p->right;
     }
 
     /**
@@ -269,7 +271,7 @@ namespace sjtu {
       }
     }
 
-    void LL(node *p) {
+    inline void LL(node *p) {
       node *origin_parent = p->parent, *new_root = p->left, *lr = new_root->right;
       p->parent = new_root;
       p->left = lr;
@@ -287,7 +289,7 @@ namespace sjtu {
       }
     }
 
-    void RR(node *p) {
+    inline void RR(node *p) {
       node *origin_parent = p->parent, *new_root = p->right, *rl = new_root->left;
       p->parent = new_root;
       p->right = rl;
@@ -305,12 +307,12 @@ namespace sjtu {
       }
     }
 
-    void LR(node *p) {
+    inline void LR(node *p) {
       RR(p->left);
       LL(p);
     }
 
-    void RL(node *p) {
+    inline void RL(node *p) {
       LL(p->right);
       RR(p);
     }
@@ -916,23 +918,19 @@ namespace sjtu {
      *   performing an insertion if such key does not already exist.
      */
     T &operator[](const Key &key) {
-      try {
-        node *ptr = root;
-        while (ptr) {
-          if (ls(key, ptr->vt->first)) {
-            ptr = ptr->left;
-          } else if (ls(ptr->vt->first, key)) {
-            ptr = ptr->right;
-          } else {
-            return ptr->vt->second;
-          }
+      node *ptr = root;
+      while (ptr) {
+        if (ls(key, ptr->vt->first)) {
+          ptr = ptr->left;
+        } else if (ls(ptr->vt->first, key)) {
+          ptr = ptr->right;
+        } else {
+          return ptr->vt->second;
         }
-        throw index_out_of_bound();
-      } catch (index_out_of_bound &) {
-        value_type vt(key, T());
-        pair<iterator, bool> inserted = insert(vt);
-        return inserted.first.ptr->vt->second;
       }
+      value_type vt(key, T());
+      pair<iterator, bool> inserted = insert(vt);
+      return inserted.first.ptr->vt->second;
     }
 
     /**
@@ -1020,13 +1018,12 @@ namespace sjtu {
      *   the second one is true if insert successfully, or false.
      */
     pair<iterator, bool> insert(const value_type &value) {
-      node *ptr = nullptr;
-      try {
-        ptr = Insert(value);
-      } catch (key_already_exist &) {
+      node *ptr = Insert(value);
+      if (ptr == nullptr) {
         iterator it = find(value.first);
         return {it, false};
       }
+      InsertBalance(ptr);
       if (num == 1) {
         smallest = ptr;
         largest = ptr;
@@ -1035,7 +1032,6 @@ namespace sjtu {
       } else if (ls(largest->vt->first, value.first)) {
         largest = ptr;
       }
-      InsertBalance(ptr);
       return {iterator(ptr, this), true};
     }
 
@@ -1048,15 +1044,15 @@ namespace sjtu {
       if (pos.mp != this || pos.ptr == end_node || pos.ptr == nullptr || pos != find(pos.ptr->vt->first)) {
         throw invalid_iterator();
       }
+      node *target = ReplaceAndLocate(*pos.ptr->vt);
       if (num == 1) {
         smallest = nullptr;
         largest = nullptr;
-      } else if (pos == begin()) {
+      } else if (target == smallest) {
         smallest = (++begin()).ptr;
-      } else if (pos == --end()) {
+      } else if (target == largest) {
         largest = (--(--end())).ptr;
       }
-      node *target = ReplaceAndLocate(*pos.ptr->vt);
       RemoveAndBalance(target);
     }
 
@@ -1115,6 +1111,54 @@ namespace sjtu {
       return const_iterator(end_node, this);
     }
 
+    // todo: for debugging
+    /*void PrintEdge(node *p) {
+      if (p == nullptr) {
+        return;
+      }
+
+      if (p->left) {
+        if (p->red) {
+          std::cout << "\033[31m" << p->vt->first << " ";
+        } else {
+          std::cout << "\033[0m" << p->vt->first << " ";
+        }
+        if (p->left->red) {
+          std::cout << "\033[31m" << p->left->vt->first << "\n";
+        } else {
+          std::cout << "\033[0m" << p->left->vt->first << "\n";
+        }
+      }
+      if (p->right) {
+        if (p->red) {
+          std::cout << "\033[31m" << p->vt->first << " ";
+        } else {
+          std::cout << "\033[0m" << p->vt->first << " ";
+        }
+        if (p->right->red) {
+          std::cout << "\033[31m" << p->right->vt->first << "\n";
+        } else {
+          std::cout << "\033[0m" << p->right->vt->first << "\n";
+        }
+      }
+      PrintEdge(p->left);
+      PrintEdge(p->right);
+    }
+
+    void PrintKey(node *p) {
+      if (p == nullptr) {
+        return;
+      }
+
+      if (p->red) {
+        std::cout << "\033[31m" << p->vt->first << "\n";
+      } else {
+        std::cout << "\033[0m" << p->vt->first << "\n";
+      }
+
+      PrintKey(p->left);
+      PrintKey(p->right);
+    }*/
   };
 }
 
